@@ -22,12 +22,19 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 
-    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    var forwardedHeadersOptions = new ForwardedHeadersOptions
     {
         ForwardedHeaders =
             ForwardedHeaders.XForwardedFor |
             ForwardedHeaders.XForwardedProto
-    });
+    };
+
+    // 🔴 KRITIKUS: proxy engedélyezése
+    forwardedHeadersOptions.KnownProxies.Add(
+        System.Net.IPAddress.Parse("127.0.0.1")
+    );
+
+    app.UseForwardedHeaders(forwardedHeadersOptions);
 }
 
 app.UseDefaultFiles();
