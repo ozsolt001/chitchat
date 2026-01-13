@@ -1,6 +1,6 @@
 using ChatApp.Backend;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.HttpOverrides;
+using ChatApp.Backend.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +14,13 @@ builder.Services.AddControllers();
 builder.Services.AddHttpsRedirection(options =>
 {
     options.HttpsPort = 5001;
+});
+
+builder.Services.AddDbContext<ChatDbContext>(options =>
+{
+    options.UseSqlite("Data Source=/app/data/chat.db");
+
+    //options.UseSqlite("Data Source=chat.db");
 });
 
 var app = builder.Build();
