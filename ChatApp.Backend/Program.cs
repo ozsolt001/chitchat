@@ -18,25 +18,6 @@ builder.Services.AddHttpsRedirection(options =>
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-
-    var forwardedHeadersOptions = new ForwardedHeadersOptions
-    {
-        ForwardedHeaders =
-            ForwardedHeaders.XForwardedFor |
-            ForwardedHeaders.XForwardedProto
-    };
-
-    // 🔴 KRITIKUS: proxy engedélyezése
-    forwardedHeadersOptions.KnownProxies.Add(
-        System.Net.IPAddress.Parse("127.0.0.1")
-    );
-
-    app.UseForwardedHeaders(forwardedHeadersOptions);
-}
-
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
