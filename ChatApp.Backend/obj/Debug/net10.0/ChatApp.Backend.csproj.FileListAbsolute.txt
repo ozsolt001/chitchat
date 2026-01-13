@@ -1,0 +1,8 @@
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.csproj.AssemblyReference.cache
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\rpswa.dswa.cache.json
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.GeneratedMSBuildEditorConfig.editorconfig
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.AssemblyInfoInputs.cache
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.AssemblyInfo.cs
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.csproj.CoreCompileInputs.cache
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.MvcApplicationPartsAssemblyInfo.cs
+C:\Cset\ChatApp.Backend\obj\Debug\net10.0\ChatApp.Backend.MvcApplicationPartsAssemblyInfo.cache
