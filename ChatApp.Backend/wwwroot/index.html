@@ -13,7 +13,7 @@
 
     <script>
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chatHub")
+            .withUrl("/chat/chatHub")
             .build();
 
         connection.on("ReceiveMessage", (user, message) => {
