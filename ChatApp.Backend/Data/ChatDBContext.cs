@@ -18,9 +18,11 @@ public class ChatDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        //Composite keys for RoomMember
         modelBuilder.Entity<RoomMember>()
             .HasKey(rm => new { rm.AccountId, rm.RoomId });
 
+        //Explicit relationships 
         modelBuilder.Entity<RoomMember>()
             .HasOne(rm => rm.Account)
             .WithMany(a => a.RoomMemberships)
