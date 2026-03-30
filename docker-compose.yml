@@ -12,6 +12,22 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Production
     restart: unless-stopped
+    depends_on:
+      - chat-frontend
+
+  chat-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chat-frontend
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
 
 volumes:
   chat-data:

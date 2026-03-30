@@ -1,0 +1,22 @@
+# Node modules
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# .NET build artifacts
+ChatApp.Backend/bin/
+ChatApp.Backend/obj/
+*.user
+*.suo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
