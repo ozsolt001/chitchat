@@ -16,6 +16,23 @@ public class RoomsController : ControllerBase
         _db = db;
     }
 
+    // 0️⃣ Szobák listázása
+    [HttpGet]
+    public async Task<IActionResult> GetRooms()
+    {
+        var rooms = await _db.Rooms
+            .Select(r => new
+            {
+                r.Id,
+                r.Name,
+                r.IsPrivate,
+                MemberCount = r.Members.Count
+            })
+            .ToListAsync();
+
+        return Ok(rooms);
+    }
+
     // 1️⃣ Szoba létrehozása
     [HttpPost]
     public async Task<IActionResult> CreateRoom(CreateRoomRequest request)

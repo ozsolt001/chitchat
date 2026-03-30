@@ -1,0 +1,15 @@
+# Node modules
+/frontend/node_modules/
+
+# Vite
+/frontend/dist/
+/frontend/.vite/
+/frontend/vite.config.*.local
+
+# IDE
+/.idea/
+/.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates

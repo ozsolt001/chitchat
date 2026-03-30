@@ -1,58 +1,14 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Chat</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
-</head>
-<body>
-    <input id="user" placeholder="User" />
-    <input id="message" placeholder="Message" />
-    <button onclick="send()">Send</button>
-
-    <ul id="messages"></ul>
-
-    <script>
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chat/chatHub")
-            .build();
-
-        // connection.on("ReceiveMessage", (user, message) => {
-        //     const li = document.createElement("li");
-        //     li.textContent = `${user}: ${message}`;
-        //     document.getElementById("messages").appendChild(li);
-        // });
-
-        connection.on("ReceiveMessage", (user, message, sentAt) => {
-            addMessage(user, message, sentAt);
-        });
-
-        connection.on("ChatHistory", (messages) => {
-            messages.forEach(m => {
-                addMessage(m.user, m.message, m.sentAt);
-            });
-        });
-
-        connection.start().catch(err => console.error(err));
-
-        function addMessage(user, message, sentAt) {
-            const li = document.createElement("li");
-
-            const time = sentAt
-                ? new Date(sentAt).toLocaleTimeString()
-                : "";
-
-            li.textContent = `[${time}] ${user}: ${message}`;
-
-            document.getElementById("messages").appendChild(li);
-        }
-
-        function send() {
-            connection.invoke(
-                "SendMessage",
-                document.getElementById("user").value,
-                document.getElementById("message").value
-            );
-        }
-    </script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+    <script type="module" crossorigin src="/assets/index-Bs60xu6a.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-B8AHoT6M.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>

@@ -18,9 +18,9 @@ builder.Services.AddHttpsRedirection(options =>
 
 builder.Services.AddDbContext<ChatDbContext>(options =>
 {
-    options.UseSqlite("Data Source=/app/data/chat.db");
+    //options.UseSqlite("Data Source=/app/data/chat.db");
 
-    //options.UseSqlite("Data Source=chat.db");
+    options.UseSqlite("Data Source=chat.db");
 });
 
 var app = builder.Build();
