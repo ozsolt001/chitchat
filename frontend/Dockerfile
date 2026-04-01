@@ -6,14 +6,13 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Clean install for Linux platform (removes platform-specific bindings from lock file)
+RUN rm -f package-lock.json && npm install
 
-# Copy source code
-COPY . .
+# Source code will be mounted via volume in development
 
 # Expose port
 EXPOSE 5173
 
-# Start development server
+# Start development server with proper file watching
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

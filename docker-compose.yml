@@ -2,15 +2,18 @@ version: "3.9"
 
 services:
   chat-backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     container_name: chat-backend
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
+      - ./ChatApp.Backend:/app/src
       - chat-data:/app/data
     environment:
       - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
     restart: unless-stopped
     depends_on:
       - chat-frontend
@@ -26,8 +29,9 @@ services:
       - NODE_ENV=development
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     restart: unless-stopped
 
 volumes:
   chat-data:
+  frontend_node_modules:
