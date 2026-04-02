@@ -12,5 +12,8 @@ ENV PATH="${PATH}:/root/.dotnet/tools"
 # Expose port
 EXPOSE 8080
 
+# Ensure container host binding works for network proxy
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+
 # Run with dotnet watch for hot reload
 ENTRYPOINT ["dotnet", "watch", "run", "--project", "src/ChatApp.Backend.csproj"]

@@ -10,10 +10,12 @@ namespace ChatApp.Backend.Controllers;
 public class RoomsController : ControllerBase
 {
     private readonly ChatDbContext _db;
+    private readonly ILogger<RoomsController> _logger;
 
-    public RoomsController(ChatDbContext db)
+    public RoomsController(ChatDbContext db, ILogger<RoomsController> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     // 0️⃣ Szobák listázása
@@ -67,24 +69,38 @@ public class RoomsController : ControllerBase
         });
     }
 
-    // 2️⃣ Belépés szobába
+    //2️⃣ Belépés szobába
     [HttpPost("{roomId}/join")]
     public async Task<IActionResult> JoinRoom(int roomId, JoinRoomRequest request)
     {
+        _logger.LogInformation("JoinRoom called with roomId={RoomId}, accountId={AccountId}", roomId, request.AccountId);
+
         var account = await _db.Accounts.FindAsync(request.AccountId);
         if (account == null)
+        {
+            _logger.LogWarning("Account not found: {AccountId}", request.AccountId);
             return NotFound("Account not found");
+        }
 
         var room = await _db.Rooms.FindAsync(roomId);
         if (room == null)
+        {
+            _logger.LogWarning("Room not found: {RoomId}", roomId);
             return NotFound("Room not found");
+        }
 
-        var alreadyMember = await _db.RoomMembers.AnyAsync(rm =>
+        var member = await _db.RoomMembers.AnyAsync(rm =>
             rm.AccountId == request.AccountId &&
             rm.RoomId == roomId);
 
-        if (alreadyMember)
-            return Conflict("Already a member of this room");
+        //It should let you enter the room if you are already a member
+        //Only public rooms exist, so we don't need to check for that
+
+        if (member)
+        {
+            _logger.LogWarning("Account {AccountId} already member of room {RoomId}", request.AccountId, roomId);
+            return Ok("Already a member of this room");
+        }
 
         var membership = new RoomMember
         {
@@ -95,6 +111,8 @@ public class RoomsController : ControllerBase
 
         _db.RoomMembers.Add(membership);
         await _db.SaveChangesAsync();
+        
+        _logger.LogInformation("Account {AccountId} successfully joined room {RoomId}", request.AccountId, roomId);
 
         return Ok("Joined room");
     }
