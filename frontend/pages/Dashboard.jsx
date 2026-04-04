@@ -105,6 +105,10 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+          <div>
+            <button type="submit" style={{ marginRight: '10px', marginTop: '10px' }}>Belépés</button>
+            <button type="submit" style={{ marginTop: '10px' }}>Új szoba létrehozása</button>
+          </div>
         </div>
 
         <div className="card">

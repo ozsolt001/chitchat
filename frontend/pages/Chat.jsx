@@ -43,6 +43,10 @@ export default function Chat() {
 
     conn.start().then(() => {
       console.log('SignalR connected');
+      // Join the room after connecting
+      return conn.invoke('JoinRoom', room.Id, user.Id);
+    }).then(() => {
+      console.log('Joined room');
     }).catch((err) => console.error(err));
 
     setConnection(conn);
@@ -55,7 +59,7 @@ export default function Chat() {
   const sendMessage = async () => {
     if (!messageText.trim() || !connection) return;
     try {
-      await connection.invoke('SendMessage', user.userName, messageText);
+      await connection.invoke('SendMessage', messageText);
       setMessageText('');
     } catch (err) {
       console.error(err);
@@ -81,8 +85,8 @@ export default function Chat() {
     <div className="app">
       <div className="header">
         <h1>{currentRoom.name}</h1>
-        <button className="secondary" onClick={handleBack}>Vissza</button>
-        <button className="danger" onClick={handleLogout}>Kijelentkezés</button>
+        <button className="secondary" onClick={handleBack}>Back</button>
+        <button className="danger" onClick={handleLogout}>Logout</button>
       </div>
       <div className="chat-panel">
         <div className="messages">
