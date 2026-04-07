@@ -29,7 +29,10 @@ export default function Chat() {
 
     // Setup SignalR connection
     const conn = new signalR.HubConnectionBuilder()
-      .withUrl('/chatHub')
+      .withUrl('/chatHub', {
+        skipNegotiation: true,
+        transport: signalR.HttpTransportType.WebSockets,
+      })
       .withAutomaticReconnect()
       .build();
 
@@ -38,20 +41,34 @@ export default function Chat() {
     });
 
     conn.on('ChatHistory', (history) => {
-      setMessages(history);
+      setMessages(history.map((msg) => ({
+        from: msg.from ?? msg.user ?? '',
+        message: msg.message ?? '',
+        sentAt: msg.sentAt ?? null,
+      })));
     });
 
-    conn.start().then(() => {
-      console.log('SignalR connected');
-      // Join the room after connecting
-      return conn.invoke('JoinRoom', room.Id, user.Id);
-    }).then(() => {
-      console.log('Joined room');
-    }).catch((err) => console.error(err));
+    let active = true;
+    const startConnection = async () => {
+      try {
+        await conn.start();
+        console.log('SignalR connected');
+        await conn.invoke('JoinRoom', room.id, user.id);
+        if (active) {
+          setConnection(conn);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+        console.error('SignalR connection failed:', err);
+      }
+    };
 
-    setConnection(conn);
+    startConnection();
 
     return () => {
+      active = false;
       conn.stop().catch(() => {});
     };
   }, [user, navigate]);

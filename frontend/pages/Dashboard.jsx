@@ -65,8 +65,11 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accountId: user.id })
       });
-      
-      console.log(res);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Failed to join room');
+      }
 
       localStorage.setItem('currentRoom', JSON.stringify(room));
       navigate('/chat');
@@ -106,8 +109,9 @@ export default function Dashboard() {
             ))}
           </div>
           <div>
-            <button type="submit" style={{ marginRight: '10px', marginTop: '10px' }}>Belépés</button>
-            <button type="submit" style={{ marginTop: '10px' }}>Új szoba létrehozása</button>
+            <button type="submit" style={{ marginRight: '10px', marginTop: '10px' }}>Enter</button>
+            <button type="submit" style={{ marginTop: '10px' }}>Creating a new room</button>
+            <button type="submit" style={{ marginTop: '10px' }}>Deleting a room</button>
           </div>
         </div>
 

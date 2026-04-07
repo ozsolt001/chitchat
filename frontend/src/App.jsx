@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 function App() {
@@ -42,8 +42,7 @@ function App() {
 
   // If user is logged in, redirect to dashboard
   if (user) {
-    navigate('/dashboard');
-    return null;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

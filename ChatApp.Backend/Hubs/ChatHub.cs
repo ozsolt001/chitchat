@@ -9,37 +9,71 @@ namespace ChatApp.Backend;
 public class ChatHub : Hub
 {
     private readonly ChatDbContext _db;
+    private readonly ILogger<ChatHub> _logger;
 
     // Keep server-side room/account assignment per connection.
     private static readonly ConcurrentDictionary<string, (int AccountId, int RoomId)> ConnectionState
         = new();
 
-    public ChatHub(ChatDbContext db)
+    public ChatHub(ChatDbContext db, ILogger<ChatHub> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     private static string RoomGroupName(int roomId) => $"room-{roomId}";
 
     public async Task JoinRoom(int roomId, int accountId)
     {
-        var member = await _db.RoomMembers
-            .AnyAsync(m => m.RoomId == roomId && m.AccountId == accountId);
+        _logger.LogInformation("JoinRoom called for connection {ConnectionId} with roomId={RoomId} and accountId={AccountId}", Context.ConnectionId, roomId, accountId);
 
-        if (!member)
-            throw new HubException("Not authorized to join this room");
-        
-        ConnectionState[Context.ConnectionId] = (accountId, roomId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroupName(roomId));
+        try
+        {
+            if (roomId <= 0 || accountId <= 0)
+                throw new HubException("Invalid room or account identifier.");
 
-        var history = await _db.ChatMessages
-            .Where(m => m.RoomId == roomId)
-            .OrderBy(m => m.SentAt)
-            .Take(50)
-            .Select(m => new { m.User, m.Message, m.SentAt })
-            .ToListAsync();
+            var member = await _db.RoomMembers
+                .AnyAsync(m => m.RoomId == roomId && m.AccountId == accountId);
 
-        await Clients.Caller.SendAsync("ChatHistory", history);
+            if (!member)
+            {
+                _db.RoomMembers.Add(new RoomMember
+                {
+                    RoomId = roomId,
+                    AccountId = accountId,
+                    Role = RoomRole.Member
+                });
+
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("Created missing room membership for account {AccountId} in room {RoomId}.", accountId, roomId);
+            }
+            
+            ConnectionState[Context.ConnectionId] = (accountId, roomId);
+            await Groups.AddToGroupAsync(Context.ConnectionId, RoomGroupName(roomId));
+
+            var history = await _db.ChatMessages
+                .Where(m => m.RoomId == roomId)
+                .OrderBy(m => m.SentAt)
+                .Take(50)
+                .Select(m => new
+                {
+                    from = m.User,
+                    message = m.Message,
+                    sentAt = m.SentAt
+                })
+                .ToListAsync();
+
+            await Clients.Caller.SendAsync("ChatHistory", history);
+        }
+        catch (HubException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while joining room {RoomId} for connection {ConnectionId} and account {AccountId}.", roomId, Context.ConnectionId, accountId);
+            throw new HubException("Failed to join the room.");
+        }
     }
 
     public async Task LeaveRoom()
