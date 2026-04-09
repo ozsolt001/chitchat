@@ -105,6 +105,11 @@ button:hover {
   background: #edf2ff;
 }
 
+.room.selected {
+  background: #b4c9ff;
+  box-shadow: inset 0 0 0 2px #8ea2ff;
+}
+
 .chat-panel {
   display: flex;
   flex-direction: column;

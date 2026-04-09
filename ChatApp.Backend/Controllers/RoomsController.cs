@@ -116,4 +116,49 @@ public class RoomsController : ControllerBase
 
         return Ok("Joined room");
     }
+
+    //TODO: Implementation of JWT authentication and authorization to ensure only admins can delete rooms
+    [HttpDelete("{roomId}")]
+    public async Task<IActionResult> DeleteRoom(int roomId, [FromQuery] int accountId)
+    {
+        _logger.LogInformation("DeleteRoom called with roomId={RoomId}, accountId={AccountId}", roomId, accountId);
+
+        if (accountId <= 0)
+            return BadRequest("AccountId is required");
+
+        var room = await _db.Rooms.FindAsync(roomId);
+        if (room == null)
+        {
+            _logger.LogWarning("Room not found: {RoomId}", roomId);
+            return NotFound("Room not found");
+        }
+
+        var isAdmin = await _db.RoomMembers.AnyAsync(rm =>
+            rm.RoomId == roomId &&
+            rm.AccountId == accountId &&
+            rm.Role == RoomRole.Admin);
+
+        if (!isAdmin)
+        {
+            _logger.LogWarning("Account {AccountId} is not allowed to delete room {RoomId}", accountId, roomId);
+            return StatusCode(StatusCodes.Status403Forbidden, "Only room admins can delete rooms");
+        }
+
+        var roomMessages = await _db.ChatMessages
+            .Where(message => message.RoomId == roomId)
+            .ToListAsync();
+
+        var roomMembers = await _db.RoomMembers
+            .Where(member => member.RoomId == roomId)
+            .ToListAsync();
+
+        _db.ChatMessages.RemoveRange(roomMessages);
+        _db.RoomMembers.RemoveRange(roomMembers);
+        _db.Rooms.Remove(room);
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Room {RoomId} deleted by account {AccountId}", roomId, accountId);
+
+        return Ok("Room deleted");
+    }
 }
