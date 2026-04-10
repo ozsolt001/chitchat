@@ -96,6 +96,8 @@ public class AudioMessagesController : ControllerBase
             messageType = chatMessage.MessageType,
             mediaUrl = chatMessage.MediaUrl,
             durationMs = chatMessage.DurationMs,
+            profileColor = user.ProfileColor,
+            mascot = user.Mascot,
             sentAt = chatMessage.SentAt
         };
 

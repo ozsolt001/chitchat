@@ -37,6 +37,13 @@ body, html, #root {
   gap: 10px;
 }
 
+.header-actions,
+.profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 input {
   width: 100%;
   padding: 10px;
@@ -77,6 +84,94 @@ button:hover {
   color: #b5142d;
   font-size: 14px;
   margin-top: 8px;
+}
+
+.status-text {
+  margin-top: 12px;
+  color: #243157;
+  font-size: 14px;
+}
+
+.profile-card,
+.profile-page-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.picker-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #243157;
+}
+
+.color-options,
+.mascot-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  box-shadow: 0 0 0 1px rgba(36, 49, 87, 0.12);
+}
+
+.color-swatch.selected {
+  border-color: #243157;
+}
+
+.mascot-option {
+  background: #eef3ff;
+  color: #243157;
+  text-transform: capitalize;
+}
+
+.mascot-option.selected {
+  background: #243157;
+  color: white;
+}
+
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.profile-badge.large {
+  min-width: 86px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.profile-preview,
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-summary p {
+  margin: 6px 0 0;
+  color: #58627f;
 }
 
 .content {
@@ -154,8 +249,29 @@ button:hover {
   overflow: hidden;
 }
 
+.from-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
 .message .from {
   font-weight: 700;
+}
+
+.message-mascot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
 }
 
 .message .body {

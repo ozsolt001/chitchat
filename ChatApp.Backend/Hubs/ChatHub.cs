@@ -62,15 +62,21 @@ public class ChatHub : Hub
                 .Where(m => m.RoomId == roomId)
                 .OrderBy(m => m.SentAt)
                 .Take(50)
-                .Select(m => new
-                {
-                    from = m.User,
-                    message = m.Message,
-                    messageType = m.MessageType,
-                    mediaUrl = m.MediaUrl,
-                    durationMs = m.DurationMs,
-                    sentAt = m.SentAt
-                })
+                .Join(
+                    _db.Users,
+                    message => message.AccountId,
+                    account => account.Id,
+                    (message, account) => new
+                    {
+                        from = message.User,
+                        message = message.Message,
+                        messageType = message.MessageType,
+                        mediaUrl = message.MediaUrl,
+                        durationMs = message.DurationMs,
+                        profileColor = account.ProfileColor,
+                        mascot = account.Mascot,
+                        sentAt = message.SentAt
+                    })
                 .ToListAsync();
 
             await Clients.Caller.SendAsync("ChatHistory", history);
@@ -137,6 +143,8 @@ public class ChatHub : Hub
                 messageType = chatMessage.MessageType,
                 mediaUrl = chatMessage.MediaUrl,
                 durationMs = chatMessage.DurationMs,
+                profileColor = account.ProfileColor,
+                mascot = account.Mascot,
                 sentAt = chatMessage.SentAt
             });
     }

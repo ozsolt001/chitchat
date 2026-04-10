@@ -3,6 +3,7 @@ using ChatApp.Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 
 namespace ChatApp.Backend.Controllers;
 
@@ -10,6 +11,10 @@ namespace ChatApp.Backend.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
+    private const string DefaultProfileColor = "#4f8cff";
+    private const string DefaultMascot = "fox";
+    private static readonly Regex HexColorRegex = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
+
     private readonly UserManager<Account> _userManager;
     private readonly SignInManager<Account> _signInManager;
 
@@ -27,7 +32,9 @@ public class AuthController : ControllerBase
 
         var user = new Account
         {
-            UserName = request.UserName.Trim()
+            UserName = request.UserName.Trim(),
+            ProfileColor = NormalizeProfileColor(request.ProfileColor),
+            Mascot = NormalizeMascot(request.Mascot)
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -79,12 +86,55 @@ public class AuthController : ControllerBase
         return Ok(ToResponse(user));
     }
 
+    [Authorize]
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile(ProfileUpdateRequest request)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        user.ProfileColor = NormalizeProfileColor(request.ProfileColor);
+        user.Mascot = NormalizeMascot(request.Mascot);
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                errors = result.Errors.Select(error => error.Description)
+            });
+        }
+
+        return Ok(ToResponse(user));
+    }
+
     private static object ToResponse(Account user)
     {
         return new
         {
             user.Id,
-            user.UserName
+            user.UserName,
+            user.ProfileColor,
+            user.Mascot
         };
+    }
+
+    private static string NormalizeProfileColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+            return DefaultProfileColor;
+
+        var trimmed = color.Trim();
+        return HexColorRegex.IsMatch(trimmed) ? trimmed.ToLowerInvariant() : DefaultProfileColor;
+    }
+
+    private static string NormalizeMascot(string? mascot)
+    {
+        if (string.IsNullOrWhiteSpace(mascot))
+            return DefaultMascot;
+
+        var trimmed = mascot.Trim().ToLowerInvariant();
+        return trimmed.Length > 32 ? trimmed[..32] : trimmed;
     }
 }

@@ -151,8 +151,16 @@ export default function Dashboard() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Welcome, {user.userName}!</h1>
-        <button className="danger" onClick={handleLogout}>Logout</button>
+        <div className="profile-heading">
+          <span className="profile-badge" style={{ backgroundColor: user.profileColor }}>
+            {user.mascot}
+          </span>
+          <h1>Welcome, {user.userName}!</h1>
+        </div>
+        <div className="header-actions">
+          <button className="secondary" onClick={() => navigate('/profile')}>Profile</button>
+          <button className="danger" onClick={handleLogout}>Logout</button>
+        </div>
       </div>
 
       <div className="content">

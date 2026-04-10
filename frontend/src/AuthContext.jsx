@@ -43,12 +43,12 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const register = async (userName, password) => {
+  const register = async (userName, password, profileColor, mascot) => {
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ userName, password }),
+      body: JSON.stringify({ userName, password, profileColor, mascot }),
     });
 
     if (!response.ok) {
@@ -88,8 +88,26 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('currentRoom');
   };
 
+  const updateProfile = async (profileColor, mascot) => {
+    const response = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ profileColor, mascot }),
+    });
+
+    if (!response.ok) {
+      const errorMessage = await readErrorMessage(response, 'Sikertelen profilmentes.');
+      throw errorMessage;
+    }
+
+    const userData = await response.json();
+    setUser(userData);
+    return userData;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
@@ -104,5 +122,20 @@ async function safeJson(response) {
     return await response.json();
   } catch {
     return null;
+  }
+}
+
+async function readErrorMessage(response, fallbackMessage) {
+  const rawBody = await response.text();
+
+  if (!rawBody) {
+    return fallbackMessage;
+  }
+
+  try {
+    const payload = JSON.parse(rawBody);
+    return payload?.errors?.join(', ') || rawBody || fallbackMessage;
+  } catch {
+    return rawBody || fallbackMessage;
   }
 }

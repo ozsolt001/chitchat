@@ -76,6 +76,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
     db.Database.Migrate();
     EnsureChatMessageGifColumns(db);
+    EnsureAccountProfileColumns(db);
 }
 
 app.Run();
@@ -132,6 +133,53 @@ static void EnsureChatMessageGifColumns(ChatDbContext db)
         db.Database.ExecuteSqlRaw("""
             ALTER TABLE "ChatMessages"
             ADD COLUMN "DurationMs" INTEGER NULL;
+            """);
+    }
+}
+
+static void EnsureAccountProfileColumns(ChatDbContext db)
+{
+    var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var connection = db.Database.GetDbConnection();
+    var shouldCloseConnection = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldCloseConnection)
+    {
+        connection.Open();
+    }
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info('AspNetUsers');";
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            existingColumns.Add(reader.GetString(1));
+        }
+    }
+    finally
+    {
+        if (shouldCloseConnection)
+        {
+            connection.Close();
+        }
+    }
+
+    if (!existingColumns.Contains("ProfileColor"))
+    {
+        db.Database.ExecuteSqlRaw("""
+            ALTER TABLE "AspNetUsers"
+            ADD COLUMN "ProfileColor" TEXT NOT NULL DEFAULT '#4f8cff';
+            """);
+    }
+
+    if (!existingColumns.Contains("Mascot"))
+    {
+        db.Database.ExecuteSqlRaw("""
+            ALTER TABLE "AspNetUsers"
+            ADD COLUMN "Mascot" TEXT NOT NULL DEFAULT 'fox';
             """);
     }
 }

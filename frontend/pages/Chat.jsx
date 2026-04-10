@@ -53,11 +53,11 @@ export default function Chat() {
       .build();
 
     conn.on('ReceiveMessage', (payload) => {
-      setMessages((prev) => [...prev, normalizeMessage(payload)]);
+      setMessages((prev) => [...prev, normalizeMessage(payload, user)]);
     });
 
     conn.on('ChatHistory', (history) => {
-      setMessages(history.map(normalizeMessage));
+      setMessages(history.map((message) => normalizeMessage(message, user)));
     });
 
     let active = true;
@@ -303,8 +303,22 @@ export default function Chat() {
       <div className="chat-panel">
         <div className="messages">
           {messages.map((msg, idx) => (
-            <div key={idx} className="message">
-              <span className="from">{msg.from}</span>
+            <div
+              key={idx}
+              className={`message ${msg.isOwnMessage ? 'own-message' : ''}`}
+              style={{
+                background: msg.profileColor ? `${msg.profileColor}20` : undefined,
+                boxShadow: msg.profileColor ? `inset 0 0 0 1px ${msg.profileColor}55` : undefined,
+              }}
+            >
+              <div className="from-block">
+                {msg.mascot ? (
+                  <span className="message-mascot" style={{ backgroundColor: msg.profileColor || '#4f8cff' }}>
+                    {msg.mascot}
+                  </span>
+                ) : null}
+                <span className="from">{msg.from}</span>
+              </div>
               <div className="body">
                 {msg.messageType === 'gif' && msg.mediaUrl ? (
                   <div className="gif-message">
@@ -382,13 +396,16 @@ export default function Chat() {
   );
 }
 
-function normalizeMessage(message) {
+function normalizeMessage(message, currentUser = null) {
   return {
     from: message?.from ?? message?.user ?? '',
     message: message?.message ?? '',
     messageType: message?.messageType ?? 'text',
     mediaUrl: message?.mediaUrl ?? null,
     durationMs: message?.durationMs ?? null,
+    profileColor: message?.profileColor ?? '#4f8cff',
+    mascot: message?.mascot ?? '',
+    isOwnMessage: currentUser?.userName === (message?.from ?? message?.user ?? ''),
     sentAt: message?.sentAt ?? null,
   };
 }

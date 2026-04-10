@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { MASCOT_OPTIONS, PROFILE_COLORS } from './profileOptions';
 
 function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState('login');
+  const [profileColor, setProfileColor] = useState(PROFILE_COLORS[0]);
+  const [mascot, setMascot] = useState(MASCOT_OPTIONS[0]);
   const [loginError, setLoginError] = useState('');
   const { login, register, user, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +24,7 @@ function App() {
 
     try {
       if (mode === 'register') {
-        await register(username, password);
+        await register(username, password, profileColor, mascot);
       } else {
         await login(username, password);
       }
@@ -69,6 +72,46 @@ function App() {
             {mode === 'login' ? 'Enter' : 'Registration'}
           </button>
         </form>
+        {mode === 'register' ? (
+          <div className="card profile-card">
+            <h2>Pick your profile</h2>
+            <div className="picker-group">
+              <span className="picker-label">Color</span>
+              <div className="color-options">
+                {PROFILE_COLORS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`color-swatch ${profileColor === option ? 'selected' : ''}`}
+                    style={{ backgroundColor: option }}
+                    onClick={() => setProfileColor(option)}
+                    aria-label={`Select ${option}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="picker-group">
+              <span className="picker-label">Mascot</span>
+              <div className="mascot-options">
+                {MASCOT_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`mascot-option ${mascot === option ? 'selected' : ''}`}
+                    onClick={() => setMascot(option)}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="profile-preview">
+              <span className="profile-badge" style={{ backgroundColor: profileColor }}>
+                {mascot}
+              </span>
+            </div>
+          </div>
+        ) : null}
         <button
           className="secondary"
           type="button"
