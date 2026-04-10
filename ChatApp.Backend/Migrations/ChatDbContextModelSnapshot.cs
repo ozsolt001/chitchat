@@ -91,6 +91,9 @@ namespace ChatApp.Backend.Migrations
                     b.Property<int>("AccountId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("DurationMs")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("TEXT");

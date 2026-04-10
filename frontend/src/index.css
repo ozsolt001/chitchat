@@ -13,6 +13,14 @@ body, html, #root {
   min-height: 100%;
   padding: 25px;
   gap: 16px;
+  box-sizing: border-box;
+}
+
+.chat-page {
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .card {
@@ -116,16 +124,20 @@ button:hover {
   background: #fff;
   border-radius: 10px;
   padding: 14px;
-  height: calc(100vh - 150px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   margin-bottom: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-right: 4px;
 }
 
 .message {
@@ -134,6 +146,7 @@ button:hover {
   padding: 8px;
   font-size: 14px;
   display: flex;
+  flex: 0 0 auto;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
@@ -237,6 +250,26 @@ button:hover {
   font-size: 13px;
   color: #243157;
   word-break: break-word;
+}
+
+.audio-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(320px, 100%);
+}
+
+.audio-player {
+  width: min(320px, 100%);
+  max-width: 100%;
+}
+
+.audio-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #58627f;
 }
 
 .gif-preview {

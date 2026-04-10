@@ -24,7 +24,7 @@ public class ChatHub : Hub
         _logger = logger;
     }
 
-    private static string RoomGroupName(int roomId) => $"room-{roomId}";
+    public static string RoomGroupName(int roomId) => $"room-{roomId}";
 
     public async Task JoinRoom(int roomId)
     {
@@ -68,6 +68,7 @@ public class ChatHub : Hub
                     message = m.Message,
                     messageType = m.MessageType,
                     mediaUrl = m.MediaUrl,
+                    durationMs = m.DurationMs,
                     sentAt = m.SentAt
                 })
                 .ToListAsync();
@@ -93,20 +94,22 @@ public class ChatHub : Hub
         }
     }
 
-    public async Task SendMessage(string? message, string? mediaUrl = null, string? messageType = null)
+    public async Task SendMessage(string? message, string? mediaUrl = null, string? messageType = null, int? durationMs = null)
     {
         if (!ConnectionState.TryGetValue(Context.ConnectionId, out var state))
             throw new HubException("You must join a room before sending messages.");
 
         var normalizedType = string.Equals(messageType, ChatMessage.GifType, StringComparison.OrdinalIgnoreCase)
             ? ChatMessage.GifType
-            : ChatMessage.TextType;
+            : string.Equals(messageType, ChatMessage.AudioType, StringComparison.OrdinalIgnoreCase)
+                ? ChatMessage.AudioType
+                : ChatMessage.TextType;
 
         if (normalizedType == ChatMessage.TextType && string.IsNullOrWhiteSpace(message))
             throw new HubException("Message text is required.");
 
-        if (normalizedType == ChatMessage.GifType && string.IsNullOrWhiteSpace(mediaUrl))
-            throw new HubException("GIF URL is required.");
+        if ((normalizedType == ChatMessage.GifType || normalizedType == ChatMessage.AudioType) && string.IsNullOrWhiteSpace(mediaUrl))
+            throw new HubException("Media URL is required.");
 
         var account = await _db.Users.FindAsync(state.AccountId);
         if (account == null)
@@ -119,7 +122,8 @@ public class ChatHub : Hub
             RoomId = state.RoomId,
             Message = message?.Trim() ?? string.Empty,
             MessageType = normalizedType,
-            MediaUrl = string.IsNullOrWhiteSpace(mediaUrl) ? null : mediaUrl.Trim()
+            MediaUrl = string.IsNullOrWhiteSpace(mediaUrl) ? null : mediaUrl.Trim(),
+            DurationMs = durationMs > 0 ? durationMs : null
         };
 
         _db.ChatMessages.Add(chatMessage);
@@ -132,6 +136,7 @@ public class ChatHub : Hub
                 message = chatMessage.Message,
                 messageType = chatMessage.MessageType,
                 mediaUrl = chatMessage.MediaUrl,
+                durationMs = chatMessage.DurationMs,
                 sentAt = chatMessage.SentAt
             });
     }

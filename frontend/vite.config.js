@@ -20,6 +20,10 @@ export default defineConfig({
         target: 'http://chat-backend:8080',
         changeOrigin: true,
       },
+      '/uploads': {
+        target: 'http://chat-backend:8080',
+        changeOrigin: true,
+      },
       '/chatHub': {
         target: 'http://chat-backend:8080',
         ws: true,

@@ -4,6 +4,7 @@ public class ChatMessage
 {
     public const string TextType = "text";
     public const string GifType = "gif";
+    public const string AudioType = "audio";
 
     public int Id { get; set; }
 
@@ -13,6 +14,7 @@ public class ChatMessage
     public string Message { get; set; } = string.Empty;
     public string MessageType { get; set; } = TextType;
     public string? MediaUrl { get; set; }
+    public int? DurationMs { get; set; }
 
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
 }

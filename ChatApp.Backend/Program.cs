@@ -126,4 +126,12 @@ static void EnsureChatMessageGifColumns(ChatDbContext db)
             ADD COLUMN "MediaUrl" TEXT NULL;
             """);
     }
+
+    if (!existingColumns.Contains("DurationMs"))
+    {
+        db.Database.ExecuteSqlRaw("""
+            ALTER TABLE "ChatMessages"
+            ADD COLUMN "DurationMs" INTEGER NULL;
+            """);
+    }
 }

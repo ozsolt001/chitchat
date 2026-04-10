@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { useAuth } from '../src/AuthContext';
@@ -16,6 +16,11 @@ export default function Chat() {
   const [gifError, setGifError] = useState('');
   const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
   const [isSearchingGifs, setIsSearchingGifs] = useState(false);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [audioError, setAudioError] = useState('');
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const recordingStartedAtRef = useRef(null);
   const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -79,8 +84,25 @@ export default function Chat() {
     return () => {
       active = false;
       conn.stop().catch(() => {});
+      if (mediaRecorderRef.current?.state && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, [user, navigate, isLoading]);
+
+  useEffect(() => {
+    if (!isRecordingAudio) {
+      return undefined;
+    }
+
+    const timerId = window.setInterval(() => {
+      setRecordingSeconds((seconds) => seconds + 1);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [isRecordingAudio]);
 
   const sendMessage = async () => {
     if (!messageText.trim() || !connection) {
@@ -88,7 +110,7 @@ export default function Chat() {
     }
 
     try {
-      await connection.invoke('SendMessage', messageText, null, 'text');
+      await connection.invoke('SendMessage', messageText, null, 'text', null);
       setMessageText('');
     } catch (err) {
       console.error(err);
@@ -146,7 +168,7 @@ export default function Chat() {
     }
 
     try {
-      await connection.invoke('SendMessage', caption, mediaUrl, 'gif');
+      await connection.invoke('SendMessage', caption, mediaUrl, 'gif', null);
       setIsGifPickerOpen(false);
       setGifResults([]);
       setGifQuery('');
@@ -170,12 +192,109 @@ export default function Chat() {
     logout().finally(() => navigate('/'));
   };
 
+  const toggleAudioRecording = async () => {
+    if (isRecordingAudio) {
+      stopAudioRecording();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setAudioError('A bongeszod nem tamogatja a hangrogzitest.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/ogg')
+          ? 'audio/ogg'
+          : '';
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const blobType = recorder.mimeType || chunks[0]?.type || 'audio/webm';
+        const audioBlob = new Blob(chunks, { type: blobType });
+        const durationMs = recordingStartedAtRef.current
+          ? Date.now() - recordingStartedAtRef.current
+          : null;
+
+        stream.getTracks().forEach((track) => track.stop());
+        mediaRecorderRef.current = null;
+        recordingStartedAtRef.current = null;
+        setIsRecordingAudio(false);
+        setRecordingSeconds(0);
+
+        if (audioBlob.size === 0) {
+          setAudioError('Nem sikerult hangot rogzitni.');
+          return;
+        }
+
+        await uploadAudioMessage(audioBlob, durationMs ?? undefined);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recordingStartedAtRef.current = Date.now();
+      setAudioError('');
+      setRecordingSeconds(0);
+      setIsRecordingAudio(true);
+      recorder.start();
+    } catch (error) {
+      console.error(error);
+      setAudioError('A mikrofonhoz valo hozzaferes nem sikerult.');
+    }
+  };
+
+  const stopAudioRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+  };
+
+  const uploadAudioMessage = async (audioBlob, durationMs) => {
+    if (!currentRoom) {
+      return;
+    }
+
+    try {
+      const extension = audioBlob.type.includes('ogg') ? 'ogg' : audioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+      const formData = new FormData();
+      formData.append('roomId', String(currentRoom.id));
+      formData.append('durationMs', String(durationMs));
+      formData.append('audio', audioBlob, `voice-message.${extension}`);
+
+      const response = await fetch('/api/audio-messages', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'A hanguzenet feltoltese nem sikerult.');
+      }
+
+      setAudioError('');
+    } catch (error) {
+      console.error(error);
+      setAudioError(error instanceof Error ? error.message : 'A hanguzenet feltoltese nem sikerult.');
+    }
+  };
+
   if (isLoading || !user || !currentRoom) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="app">
+    <div className="app chat-page">
       <div className="header">
         <h1>{currentRoom.name}</h1>
         <button className="secondary" onClick={handleBack}>Back</button>
@@ -192,6 +311,14 @@ export default function Chat() {
                     <img src={msg.mediaUrl} alt={msg.message || `${msg.from} GIF`} className="gif-preview" />
                     {msg.message ? <span className="gif-caption">{msg.message}</span> : null}
                   </div>
+                ) : msg.messageType === 'audio' && msg.mediaUrl ? (
+                  <div className="audio-message">
+                    <audio controls preload="metadata" src={msg.mediaUrl} className="audio-player" />
+                    <div className="audio-meta">
+                      <span>Hanguzenet</span>
+                      {msg.durationMs ? <span>{formatDuration(msg.durationMs)}</span> : null}
+                    </div>
+                  </div>
                 ) : (
                   msg.message
                 )}
@@ -204,8 +331,12 @@ export default function Chat() {
           <button type="button" className="secondary" onClick={() => setIsGifPickerOpen((open) => !open)}>
             {isGifPickerOpen ? 'GIF panel bezarasa' : 'GIF kuldes'}
           </button>
+          <button type="button" className={isRecordingAudio ? 'danger' : 'secondary'} onClick={toggleAudioRecording}>
+            {isRecordingAudio ? `Felvetel leallitasa (${recordingSeconds}s)` : 'Hangfelvetel'}
+          </button>
           <span className="gif-attribution">Powered by GIPHY</span>
         </div>
+        {audioError ? <div className="error">{audioError}</div> : null}
         {isGifPickerOpen ? (
           <div className="gif-picker card">
             <div className="gif-search-row">
@@ -257,6 +388,14 @@ function normalizeMessage(message) {
     message: message?.message ?? '',
     messageType: message?.messageType ?? 'text',
     mediaUrl: message?.mediaUrl ?? null,
+    durationMs: message?.durationMs ?? null,
     sentAt: message?.sentAt ?? null,
   };
+}
+
+function formatDuration(durationMs) {
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
