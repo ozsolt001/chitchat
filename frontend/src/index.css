@@ -134,9 +134,11 @@ button:hover {
   padding: 8px;
   font-size: 14px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .message .from {
@@ -145,7 +147,11 @@ button:hover {
 
 .message .body {
   flex: 1;
+  min-width: 0;
   margin-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .message .time {
@@ -160,4 +166,94 @@ button:hover {
 
 .input-row input {
   flex: 1;
+}
+
+.gif-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.gif-attribution {
+  font-size: 12px;
+  color: #58627f;
+}
+
+.gif-picker {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f8faff;
+}
+
+.gif-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.gif-search-row input {
+  margin-bottom: 0;
+}
+
+.gif-results {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.gif-result {
+  padding: 0;
+  background: transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.gif-result:hover {
+  border-color: #7ea0ff;
+}
+
+.gif-result img,
+.gif-preview {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+}
+
+.gif-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: fit-content;
+  max-width: min(320px, 100%);
+}
+
+.gif-caption {
+  font-size: 13px;
+  color: #243157;
+  word-break: break-word;
+}
+
+.gif-preview {
+  width: auto;
+  max-width: min(320px, 100%);
+  max-height: 240px;
+  object-fit: cover;
+  background: #dfe6ff;
+}
+
+@media (max-width: 640px) {
+  .gif-message {
+    max-width: min(220px, 100%);
+  }
+
+  .gif-preview {
+    max-width: min(220px, 100%);
+    max-height: 180px;
+  }
 }

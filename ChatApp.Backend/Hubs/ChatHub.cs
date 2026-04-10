@@ -66,6 +66,8 @@ public class ChatHub : Hub
                 {
                     from = m.User,
                     message = m.Message,
+                    messageType = m.MessageType,
+                    mediaUrl = m.MediaUrl,
                     sentAt = m.SentAt
                 })
                 .ToListAsync();
@@ -91,10 +93,20 @@ public class ChatHub : Hub
         }
     }
 
-    public async Task SendMessage(string message)
+    public async Task SendMessage(string? message, string? mediaUrl = null, string? messageType = null)
     {
         if (!ConnectionState.TryGetValue(Context.ConnectionId, out var state))
             throw new HubException("You must join a room before sending messages.");
+
+        var normalizedType = string.Equals(messageType, ChatMessage.GifType, StringComparison.OrdinalIgnoreCase)
+            ? ChatMessage.GifType
+            : ChatMessage.TextType;
+
+        if (normalizedType == ChatMessage.TextType && string.IsNullOrWhiteSpace(message))
+            throw new HubException("Message text is required.");
+
+        if (normalizedType == ChatMessage.GifType && string.IsNullOrWhiteSpace(mediaUrl))
+            throw new HubException("GIF URL is required.");
 
         var account = await _db.Users.FindAsync(state.AccountId);
         if (account == null)
@@ -105,14 +117,23 @@ public class ChatHub : Hub
             User = account.UserName ?? string.Empty,
             AccountId = state.AccountId,
             RoomId = state.RoomId,
-            Message = message
+            Message = message?.Trim() ?? string.Empty,
+            MessageType = normalizedType,
+            MediaUrl = string.IsNullOrWhiteSpace(mediaUrl) ? null : mediaUrl.Trim()
         };
 
         _db.ChatMessages.Add(chatMessage);
         await _db.SaveChangesAsync();
 
         await Clients.Group(RoomGroupName(state.RoomId))
-            .SendAsync("ReceiveMessage", account.UserName ?? string.Empty, message, chatMessage.SentAt);
+            .SendAsync("ReceiveMessage", new
+            {
+                from = account.UserName ?? string.Empty,
+                message = chatMessage.Message,
+                messageType = chatMessage.MessageType,
+                mediaUrl = chatMessage.MediaUrl,
+                sentAt = chatMessage.SentAt
+            });
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
