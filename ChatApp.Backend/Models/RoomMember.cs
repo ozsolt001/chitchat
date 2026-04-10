@@ -1,3 +1,5 @@
+namespace ChatApp.Backend.Models;
+
 public class RoomMember
 {
     public int AccountId { get; set; }

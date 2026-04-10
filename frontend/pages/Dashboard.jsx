@@ -7,25 +7,37 @@ export default function Dashboard() {
   const [roomName, setRoomName] = useState('');
   const [roomError, setRoomError] = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     if (!user) {
       navigate('/');
       return;
     }
+
     const storedRoom = localStorage.getItem('currentRoom');
     if (storedRoom) {
       setSelectedRoom(JSON.parse(storedRoom));
     }
+
     fetchRooms();
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
 
   const fetchRooms = async () => {
     try {
-      const res = await fetch('/api/rooms');
-      if (!res.ok) throw new Error('Failed to fetch rooms');
+      const res = await fetch('/api/rooms', {
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch rooms');
+      }
+
       const data = await res.json();
       setRooms(data);
     } catch (err) {
@@ -46,58 +58,54 @@ export default function Dashboard() {
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: roomName, isPrivate: false, creatorAccountId: user.id })
+        credentials: 'include',
+        body: JSON.stringify({ name: roomName, isPrivate: false }),
       });
+
       if (!res.ok) {
-        setRoomError('Nem sikerült létrehozni');
+        setRoomError('Nem sikerult letrehozni.');
         return;
       }
 
       const room = await res.json();
       setRoomName('');
       setRooms((prev) => [...prev, room]);
-      joinRoom(room);
+      await joinRoom(room);
     } catch (err) {
       console.error(err);
       setRoomError('Szerver hiba.');
     }
   };
 
-  const joinRoom = async (room) => {
-  try {
-    console.log('joinRoom called with:', room);
+  const joinRoom = async (roomToJoin = null) => {
+    try {
+      let room = roomToJoin;
 
-    if (!room) {
-      room = localStorage.getItem('currentRoom');
-      console.log('room from localStorage:', room);
-      room = JSON.parse(room);
-      console.log('parsed room:', room);
+      if (!room) {
+        const storedRoom = localStorage.getItem('currentRoom');
+        room = storedRoom ? JSON.parse(storedRoom) : null;
+      }
+
+      if (!room) {
+        return;
+      }
+
+      const res = await fetch(`/api/rooms/${room.id}/join`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(text || 'Failed to join room');
+      }
+
+      localStorage.setItem('currentRoom', JSON.stringify(room));
+      navigate('/chat');
+    } catch (err) {
+      console.error('joinRoom error:', err);
     }
-
-    console.log('user:', user);
-
-    const res = await fetch(`/api/rooms/${room.id}/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accountId: user.id })
-    });
-
-    console.log('response status:', res.status);
-
-    const text = await res.text();
-    console.log('response body:', text);
-
-    if (!res.ok) {
-      throw new Error(text || 'Failed to join room');
-    }
-
-    localStorage.setItem('currentRoom', JSON.stringify(room));
-    navigate('/chat');
-  } catch (err) {
-    console.error('joinRoom error:', err);
-  }
-};
-
+  };
 
   const deleteRoom = async () => {
     const roomData = localStorage.getItem('currentRoom');
@@ -108,8 +116,9 @@ export default function Dashboard() {
 
     try {
       const room = JSON.parse(roomData);
-      const res = await fetch(`/api/rooms/${room.id}?accountId=${user.id}`, {
-        method: 'DELETE'
+      const res = await fetch(`/api/rooms/${room.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -118,6 +127,7 @@ export default function Dashboard() {
       }
 
       localStorage.removeItem('currentRoom');
+      setSelectedRoom(null);
       setRooms((prev) => prev.filter((currentRoom) => currentRoom.id !== room.id));
     } catch (err) {
       console.error(err);
@@ -126,8 +136,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    logout().finally(() => navigate('/'));
   };
 
   const handleSelectRoom = (room) => {
@@ -135,7 +144,7 @@ export default function Dashboard() {
     localStorage.setItem('currentRoom', JSON.stringify(room));
   };
 
-  if (!user) {
+  if (isLoading || !user) {
     return null;
   }
 
@@ -158,19 +167,18 @@ export default function Dashboard() {
                 onClick={() => handleSelectRoom(room)}
               >
                 <strong>{room.name}</strong>
-                <span>{room.isPrivate ? 'Privát' : 'Nyitott'}</span>
+                <span>{room.isPrivate ? 'Privat' : 'Nyitott'}</span>
               </div>
             ))}
           </div>
           <div>
-            <button type="submit" style={{ marginRight: '10px', marginTop: '10px' }} onClick={() => joinRoom()}>Enter</button>
-            <button type="submit" style={{ marginRight: '10px', marginTop: '10px' }}>Creating a new room</button>
-            <button type="submit" style={{ marginTop: '10px' }} onClick={() => deleteRoom()}>Deleting a room</button>
+            <button type="button" style={{ marginRight: '10px', marginTop: '10px' }} onClick={() => joinRoom()}>Enter</button>
+            <button type="button" style={{ marginTop: '10px' }} onClick={deleteRoom}>Deleting a room</button>
           </div>
         </div>
 
         <div className="card">
-          <h2>Új szoba</h2>
+          <h2>Uj szoba</h2>
           <form onSubmit={handleCreateRoom}>
             <input
               value={roomName}

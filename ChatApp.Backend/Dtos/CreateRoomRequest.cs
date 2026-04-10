@@ -1,3 +1,3 @@
 namespace ChatApp.Backend.Dtos;
 
-public record CreateRoomRequest(string Name, bool IsPrivate, int CreatorAccountId);
+public record CreateRoomRequest(string Name, bool IsPrivate);

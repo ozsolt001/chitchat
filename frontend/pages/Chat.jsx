@@ -8,16 +8,19 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [connection, setConnection] = useState(null);
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     if (!user) {
       navigate('/');
       return;
     }
 
-    // Get current room from localStorage or redirect to dashboard
     const roomData = localStorage.getItem('currentRoom');
     if (!roomData) {
       navigate('/dashboard');
@@ -27,9 +30,9 @@ export default function Chat() {
     const room = JSON.parse(roomData);
     setCurrentRoom(room);
 
-    // Setup SignalR connection
     const conn = new signalR.HubConnectionBuilder()
       .withUrl('/chatHub', {
+        withCredentials: true,
         skipNegotiation: true,
         transport: signalR.HttpTransportType.WebSockets,
       })
@@ -49,11 +52,12 @@ export default function Chat() {
     });
 
     let active = true;
+
     const startConnection = async () => {
       try {
         await conn.start();
-        console.log('SignalR connected');
-        await conn.invoke('JoinRoom', room.id, user.id);
+        await conn.invoke('JoinRoom', room.id);
+
         if (active) {
           setConnection(conn);
         }
@@ -61,6 +65,7 @@ export default function Chat() {
         if (err instanceof Error && err.name === 'AbortError') {
           return;
         }
+
         console.error('SignalR connection failed:', err);
       }
     };
@@ -71,10 +76,13 @@ export default function Chat() {
       active = false;
       conn.stop().catch(() => {});
     };
-  }, [user, navigate]);
+  }, [user, navigate, isLoading]);
 
   const sendMessage = async () => {
-    if (!messageText.trim() || !connection) return;
+    if (!messageText.trim() || !connection) {
+      return;
+    }
+
     try {
       await connection.invoke('SendMessage', messageText);
       setMessageText('');
@@ -89,12 +97,14 @@ export default function Chat() {
   };
 
   const handleLogout = () => {
-    if (connection) connection.stop();
-    logout();
-    navigate('/');
+    if (connection) {
+      connection.stop();
+    }
+
+    logout().finally(() => navigate('/'));
   };
 
-  if (!user || !currentRoom) {
+  if (isLoading || !user || !currentRoom) {
     return <div>Loading...</div>;
   }
 
@@ -119,10 +129,10 @@ export default function Chat() {
           <input
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
-            placeholder="Üzenet"
+            placeholder="Uzenet"
             onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
           />
-          <button onClick={sendMessage}>Küldés</button>
+          <button onClick={sendMessage}>Kuldes</button>
         </div>
       </div>
     </div>

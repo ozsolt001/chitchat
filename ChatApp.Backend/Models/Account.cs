@@ -1,7 +1,8 @@
-public class Account
-{
-    public int Id { get; set; }
-    public string UserName { get; set; } = null!;
+using Microsoft.AspNetCore.Identity;
 
+namespace ChatApp.Backend.Models;
+
+public class Account : IdentityUser<int>
+{
     public ICollection<RoomMember> RoomMemberships { get; set; } = new List<RoomMember>();
 }

@@ -1,11 +1,15 @@
+using System.Security.Claims;
 using ChatApp.Backend.Data;
 using ChatApp.Backend.Dtos;
+using ChatApp.Backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp.Backend.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/rooms")]
 public class RoomsController : ControllerBase
 {
@@ -42,6 +46,10 @@ public class RoomsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest("Room name is required");
 
+        var accountId = GetCurrentAccountId();
+        if (accountId == null)
+            return Unauthorized();
+
         var room = new Room
         {
             Name = request.Name.Trim(),
@@ -55,7 +63,7 @@ public class RoomsController : ControllerBase
         {
             RoomId = room.Id,
             Role = RoomRole.Admin,
-            AccountId = request.CreatorAccountId
+            AccountId = accountId.Value
         };
 
         _db.RoomMembers.Add(membership);
@@ -71,14 +79,18 @@ public class RoomsController : ControllerBase
 
     //2️⃣ Belépés szobába
     [HttpPost("{roomId}/join")]
-    public async Task<IActionResult> JoinRoom(int roomId, JoinRoomRequest request)
+    public async Task<IActionResult> JoinRoom(int roomId)
     {
-        _logger.LogInformation("JoinRoom called with roomId={RoomId}, accountId={AccountId}", roomId, request.AccountId);
+        var accountId = GetCurrentAccountId();
+        if (accountId == null)
+            return Unauthorized();
 
-        var account = await _db.Accounts.FindAsync(request.AccountId);
+        _logger.LogInformation("JoinRoom called with roomId={RoomId}, accountId={AccountId}", roomId, accountId.Value);
+
+        var account = await _db.Users.FindAsync(accountId.Value);
         if (account == null)
         {
-            _logger.LogWarning("Account not found: {AccountId}", request.AccountId);
+            _logger.LogWarning("Account not found: {AccountId}", accountId.Value);
             return NotFound("Account not found");
         }
 
@@ -90,7 +102,7 @@ public class RoomsController : ControllerBase
         }
 
         var member = await _db.RoomMembers.AnyAsync(rm =>
-            rm.AccountId == request.AccountId &&
+            rm.AccountId == accountId.Value &&
             rm.RoomId == roomId);
 
         //It should let you enter the room if you are already a member
@@ -98,13 +110,13 @@ public class RoomsController : ControllerBase
 
         if (member)
         {
-            _logger.LogWarning("Account {AccountId} already member of room {RoomId}", request.AccountId, roomId);
+            _logger.LogWarning("Account {AccountId} already member of room {RoomId}", accountId.Value, roomId);
             return Ok("Already a member of this room");
         }
 
         var membership = new RoomMember
         {
-            AccountId = request.AccountId,
+            AccountId = accountId.Value,
             RoomId = roomId,
             Role = RoomRole.Member
         };
@@ -112,19 +124,19 @@ public class RoomsController : ControllerBase
         _db.RoomMembers.Add(membership);
         await _db.SaveChangesAsync();
         
-        _logger.LogInformation("Account {AccountId} successfully joined room {RoomId}", request.AccountId, roomId);
+        _logger.LogInformation("Account {AccountId} successfully joined room {RoomId}", accountId.Value, roomId);
 
         return Ok("Joined room");
     }
 
-    //TODO: Implementation of JWT authentication and authorization to ensure only admins can delete rooms
     [HttpDelete("{roomId}")]
-    public async Task<IActionResult> DeleteRoom(int roomId, [FromQuery] int accountId)
+    public async Task<IActionResult> DeleteRoom(int roomId)
     {
-        _logger.LogInformation("DeleteRoom called with roomId={RoomId}, accountId={AccountId}", roomId, accountId);
+        var accountId = GetCurrentAccountId();
+        if (accountId == null)
+            return Unauthorized();
 
-        if (accountId <= 0)
-            return BadRequest("AccountId is required");
+        _logger.LogInformation("DeleteRoom called with roomId={RoomId}, accountId={AccountId}", roomId, accountId.Value);
 
         var room = await _db.Rooms.FindAsync(roomId);
         if (room == null)
@@ -135,12 +147,12 @@ public class RoomsController : ControllerBase
 
         var isAdmin = await _db.RoomMembers.AnyAsync(rm =>
             rm.RoomId == roomId &&
-            rm.AccountId == accountId &&
+            rm.AccountId == accountId.Value &&
             rm.Role == RoomRole.Admin);
 
         if (!isAdmin)
         {
-            _logger.LogWarning("Account {AccountId} is not allowed to delete room {RoomId}", accountId, roomId);
+            _logger.LogWarning("Account {AccountId} is not allowed to delete room {RoomId}", accountId.Value, roomId);
             return StatusCode(StatusCodes.Status403Forbidden, "Only room admins can delete rooms");
         }
 
@@ -157,8 +169,14 @@ public class RoomsController : ControllerBase
         _db.Rooms.Remove(room);
         await _db.SaveChangesAsync();
 
-        _logger.LogInformation("Room {RoomId} deleted by account {AccountId}", roomId, accountId);
+        _logger.LogInformation("Room {RoomId} deleted by account {AccountId}", roomId, accountId.Value);
 
         return Ok("Room deleted");
+    }
+
+    private int? GetCurrentAccountId()
+    {
+        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(value, out var accountId) ? accountId : null;
     }
 }

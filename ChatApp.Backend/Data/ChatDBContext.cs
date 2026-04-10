@@ -1,23 +1,25 @@
-using Microsoft.EntityFrameworkCore;
 using ChatApp.Backend.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChatApp.Backend.Data;
 
-public class ChatDbContext : DbContext
+public class ChatDbContext : IdentityDbContext<Account, IdentityRole<int>, int>
 {
-    public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<RoomMember> RoomMembers => Set<RoomMember>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     public ChatDbContext(DbContextOptions<ChatDbContext> options)
         : base(options)
     {
     }
 
-    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         //Composite keys for RoomMember
         modelBuilder.Entity<RoomMember>()
             .HasKey(rm => new { rm.AccountId, rm.RoomId });
@@ -33,5 +35,4 @@ public class ChatDbContext : DbContext
             .WithMany(r => r.Members)
             .HasForeignKey(rm => rm.RoomId);
     }
-
 }

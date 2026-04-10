@@ -4,43 +4,47 @@ import { useAuth } from './AuthContext';
 
 function App() {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState('login');
   const [loginError, setLoginError] = useState('');
-  const { login, user } = useAuth();
+  const { login, register, user, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
 
-    if (!username.trim()) {
-      setLoginError('Adj meg felhasználónevet!');
+    if (!username.trim() || !password.trim()) {
+      setLoginError('Add meg a felhasznalonevet es a jelszot.');
       return;
     }
 
     try {
-      const res = await fetch('/api/accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName: username })
-      });
-
-      if (!res.ok) {
-        if (res.status === 409) setLoginError('A felhasználónév foglalt.');
-        else setLoginError('Hiba történt.');
-        return;
+      if (mode === 'register') {
+        await register(username, password);
+      } else {
+        await login(username, password);
       }
 
-      const account = await res.json();
-      login(account);
       setUsername('');
+      setPassword('');
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
-      setLoginError('Hálózati hiba.');
+      setLoginError(typeof err === 'string' && err ? err : 'Sikertelen bejelentkezes.');
     }
   };
 
-  // If user is logged in, redirect to dashboard
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="card">
+          <h1>Betoltes...</h1>
+        </div>
+      </div>
+    );
+  }
+
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -48,15 +52,30 @@ function App() {
   return (
     <div className="app">
       <div className="card">
-        <h1>Login</h1>
-        <form onSubmit={handleLogin}>
+        <h1>{mode === 'login' ? 'Bejelentkezes' : 'Regisztracio'}</h1>
+        <form onSubmit={handleSubmit}>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Felhasználónév"
+            placeholder="Username"
           />
-          <button type="submit">Belépés</button>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+          />
+          <button type="submit">
+            {mode === 'login' ? 'Enter' : 'Registration'}
+          </button>
         </form>
+        <button
+          className="secondary"
+          type="button"
+          onClick={() => setMode((currentMode) => currentMode === 'login' ? 'register' : 'login')}
+        >
+          {mode === 'login' ? 'Creating a new account' : 'I already have an account'}
+        </button>
         {loginError && <div className="error">{loginError}</div>}
       </div>
     </div>
