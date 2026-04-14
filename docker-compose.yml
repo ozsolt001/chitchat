@@ -27,6 +27,8 @@ services:
       - "127.0.0.1:5173:5173"
     environment:
       - NODE_ENV=development
+      - REMOTE_DEV=${REMOTE_DEV:-true}
+      - PUBLIC_HOST=${PUBLIC_HOST:-apolip.duckdns.org}
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules

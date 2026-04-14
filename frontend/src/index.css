@@ -242,11 +242,16 @@ button:hover {
   font-size: 14px;
   display: flex;
   flex: 0 0 auto;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   max-width: 100%;
   overflow: hidden;
+}
+
+.message-gif,
+.message-audio {
+  align-items: flex-start;
 }
 
 .from-block {
@@ -281,6 +286,7 @@ button:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  justify-content: center;
 }
 
 .message .time {

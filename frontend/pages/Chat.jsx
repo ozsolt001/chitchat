@@ -21,6 +21,7 @@ export default function Chat() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const mediaRecorderRef = useRef(null);
   const recordingStartedAtRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -103,6 +104,10 @@ export default function Chat() {
       window.clearInterval(timerId);
     };
   }, [isRecordingAudio]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!messageText.trim() || !connection) {
@@ -305,7 +310,7 @@ export default function Chat() {
           {messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`message ${msg.isOwnMessage ? 'own-message' : ''}`}
+              className={`message message-${msg.messageType} ${msg.isOwnMessage ? 'own-message' : ''}`}
               style={{
                 background: msg.profileColor ? `${msg.profileColor}20` : undefined,
                 boxShadow: msg.profileColor ? `inset 0 0 0 1px ${msg.profileColor}55` : undefined,
@@ -340,6 +345,7 @@ export default function Chat() {
               <span className="time">{msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString() : ''}</span>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
         <div className="gif-toolbar">
           <button type="button" className="secondary" onClick={() => setIsGifPickerOpen((open) => !open)}>
