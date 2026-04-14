@@ -91,6 +91,7 @@ public class AudioMessagesController : ControllerBase
 
         var payload = new
         {
+            id = chatMessage.Id,
             from = chatMessage.User,
             message = chatMessage.Message,
             messageType = chatMessage.MessageType,

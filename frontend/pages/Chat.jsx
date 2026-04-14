@@ -9,6 +9,8 @@ const GIPHY_SEARCH_URL = 'https://api.giphy.com/v1/gifs/search';
 export default function Chat() {
   const [currentRoom, setCurrentRoom] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
   const [messageText, setMessageText] = useState('');
   const [connection, setConnection] = useState(null);
   const [gifQuery, setGifQuery] = useState('');
@@ -59,6 +61,16 @@ export default function Chat() {
 
     conn.on('ChatHistory', (history) => {
       setMessages(history.map((message) => normalizeMessage(message, user)));
+    });
+
+    conn.on('MessageDeleted', (payload) => {
+      const deletedId = payload?.id ?? null;
+      if (!deletedId) {
+        return;
+      }
+
+      setMessages((prev) => prev.filter((message) => message.id !== deletedId));
+      setDeletingMessageId((current) => (current === deletedId ? null : current));
     });
 
     let active = true;
@@ -121,6 +133,35 @@ export default function Chat() {
       console.error(err);
     }
   };
+
+  const deleteMessage = async (messageId) => {
+    if (!messageId || deletingMessageId === messageId) {
+      return;
+    }
+
+    try {
+      setDeleteError('');
+      setDeletingMessageId(messageId);
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Az uzenet torlese nem sikerult.');
+      }
+
+      setMessages((prev) => prev.filter((message) => message.id !== messageId));
+    } catch (error) {
+      console.error(error);
+      setDeleteError(error instanceof Error ? error.message : 'Az uzenet torlese nem sikerult.');
+    } finally {
+      setDeletingMessageId((current) => (current === messageId ? null : current));
+    }
+  };
+
+  const isDeletingMessage = (messageId) => messageId != null && deletingMessageId === messageId;
 
   const searchGifs = async () => {
     if (!GIPHY_API_KEY) {
@@ -342,6 +383,17 @@ export default function Chat() {
                   msg.message
                 )}
               </div>
+              {msg.isOwnMessage ? (
+                <button
+                  type="button"
+                  className="message-delete-button danger"
+                  onClick={() => deleteMessage(msg.id)}
+                  disabled={msg.id == null || isDeletingMessage(msg.id)}
+                  aria-label="Delete message"
+                >
+                  {isDeletingMessage(msg.id) ? 'Deleting...' : 'Delete'}
+                </button>
+              ) : null}
               <span className="time">{msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString() : ''}</span>
             </div>
           ))}
@@ -356,6 +408,7 @@ export default function Chat() {
           </button>
           <span className="gif-attribution">Powered by GIPHY</span>
         </div>
+        {deleteError ? <div className="error">{deleteError}</div> : null}
         {audioError ? <div className="error">{audioError}</div> : null}
         {isGifPickerOpen ? (
           <div className="gif-picker card">
@@ -404,6 +457,7 @@ export default function Chat() {
 
 function normalizeMessage(message, currentUser = null) {
   return {
+    id: message?.id ?? null,
     from: message?.from ?? message?.user ?? '',
     message: message?.message ?? '',
     messageType: message?.messageType ?? 'text',

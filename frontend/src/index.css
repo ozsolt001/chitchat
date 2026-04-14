@@ -292,6 +292,19 @@ button:hover {
 .message .time {
   font-size: 11px;
   color: #888;
+  flex-shrink: 0;
+}
+
+.message-delete-button {
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.message-delete-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .input-row {

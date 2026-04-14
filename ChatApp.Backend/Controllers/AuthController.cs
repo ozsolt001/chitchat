@@ -1,8 +1,10 @@
 using ChatApp.Backend.Dtos;
+using ChatApp.Backend.Data;
 using ChatApp.Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
 namespace ChatApp.Backend.Controllers;
@@ -17,11 +19,13 @@ public class AuthController : ControllerBase
 
     private readonly UserManager<Account> _userManager;
     private readonly SignInManager<Account> _signInManager;
+    private readonly ChatDbContext _db;
 
-    public AuthController(UserManager<Account> userManager, SignInManager<Account> signInManager)
+    public AuthController(UserManager<Account> userManager, SignInManager<Account> signInManager, ChatDbContext db)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _db = db;
     }
 
     [HttpPost("register")]
@@ -30,9 +34,13 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Password))
             return BadRequest("Username and password are required.");
 
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        var isFirstUser = !await _db.Users.AnyAsync();
+
         var user = new Account
         {
             UserName = request.UserName.Trim(),
+            IsAdmin = isFirstUser,
             ProfileColor = NormalizeProfileColor(request.ProfileColor),
             Mascot = NormalizeMascot(request.Mascot)
         };
@@ -40,12 +48,14 @@ public class AuthController : ControllerBase
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
+            await transaction.RollbackAsync();
             return BadRequest(new
             {
                 errors = result.Errors.Select(error => error.Description)
             });
         }
 
+        await transaction.CommitAsync();
         await _signInManager.SignInAsync(user, isPersistent: false);
         return Ok(ToResponse(user));
     }
@@ -115,6 +125,7 @@ public class AuthController : ControllerBase
         {
             user.Id,
             user.UserName,
+            user.IsAdmin,
             user.ProfileColor,
             user.Mascot
         };

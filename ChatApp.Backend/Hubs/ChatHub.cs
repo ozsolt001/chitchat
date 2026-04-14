@@ -68,6 +68,7 @@ public class ChatHub : Hub
                     account => account.Id,
                     (message, account) => new
                     {
+                        id = message.Id,
                         from = message.User,
                         message = message.Message,
                         messageType = message.MessageType,
@@ -138,6 +139,7 @@ public class ChatHub : Hub
         await Clients.Group(RoomGroupName(state.RoomId))
             .SendAsync("ReceiveMessage", new
             {
+                id = chatMessage.Id,
                 from = account.UserName ?? string.Empty,
                 message = chatMessage.Message,
                 messageType = chatMessage.MessageType,
@@ -146,6 +148,33 @@ public class ChatHub : Hub
                 profileColor = account.ProfileColor,
                 mascot = account.Mascot,
                 sentAt = chatMessage.SentAt
+            });
+    }
+
+    public async Task DeleteMessage(int messageId)
+    {
+        if (!ConnectionState.TryGetValue(Context.ConnectionId, out var state))
+            throw new HubException("You must join a room before deleting messages.");
+
+        if (messageId <= 0)
+            throw new HubException("Invalid message identifier.");
+
+        var chatMessage = await _db.ChatMessages
+            .FirstOrDefaultAsync(message => message.Id == messageId && message.RoomId == state.RoomId);
+
+        if (chatMessage == null)
+            throw new HubException("Message not found.");
+
+        if (chatMessage.AccountId != state.AccountId)
+            throw new HubException("You can only delete your own messages.");
+
+        _db.ChatMessages.Remove(chatMessage);
+        await _db.SaveChangesAsync();
+
+        await Clients.Group(RoomGroupName(state.RoomId))
+            .SendAsync("MessageDeleted", new
+            {
+                id = chatMessage.Id
             });
     }
 

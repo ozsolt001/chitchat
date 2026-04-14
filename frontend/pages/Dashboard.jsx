@@ -155,7 +155,7 @@ export default function Dashboard() {
           <span className="profile-badge" style={{ backgroundColor: user.profileColor }}>
             {user.mascot}
           </span>
-          <h1>Welcome, {user.userName}!</h1>
+          <h1>Welcome, {user.userName}! {user.isAdmin ? 'Admin' : ''}</h1>
         </div>
         <div className="header-actions">
           <button className="secondary" onClick={() => navigate('/profile')}>Profile</button>
@@ -181,7 +181,7 @@ export default function Dashboard() {
           </div>
           <div>
             <button type="button" style={{ marginRight: '10px', marginTop: '10px' }} onClick={() => joinRoom()}>Enter</button>
-            <button type="button" style={{ marginTop: '10px' }} onClick={deleteRoom}>Deleting a room</button>
+            <button hidden={!user.isAdmin} type="button" style={{ marginTop: '10px' }} onClick={deleteRoom}>Deleting a room</button>
           </div>
         </div>
 

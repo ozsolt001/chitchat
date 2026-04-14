@@ -4,6 +4,7 @@ namespace ChatApp.Backend.Models;
 
 public class Account : IdentityUser<int>
 {
+    public bool IsAdmin { get; set; }
     public string ProfileColor { get; set; } = "#4f8cff";
     public string Mascot { get; set; } = "fox";
 

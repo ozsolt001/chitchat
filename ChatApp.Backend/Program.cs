@@ -77,6 +77,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
     EnsureChatMessageGifColumns(db);
     EnsureAccountProfileColumns(db);
+    EnsureAccountAdminColumn(db);
 }
 
 app.Run();
@@ -180,6 +181,45 @@ static void EnsureAccountProfileColumns(ChatDbContext db)
         db.Database.ExecuteSqlRaw("""
             ALTER TABLE "AspNetUsers"
             ADD COLUMN "Mascot" TEXT NOT NULL DEFAULT 'fox';
+            """);
+    }
+}
+
+static void EnsureAccountAdminColumn(ChatDbContext db)
+{
+    var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    var connection = db.Database.GetDbConnection();
+    var shouldCloseConnection = connection.State != System.Data.ConnectionState.Open;
+
+    if (shouldCloseConnection)
+    {
+        connection.Open();
+    }
+
+    try
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info('AspNetUsers');";
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            existingColumns.Add(reader.GetString(1));
+        }
+    }
+    finally
+    {
+        if (shouldCloseConnection)
+        {
+            connection.Close();
+        }
+    }
+
+    if (!existingColumns.Contains("IsAdmin"))
+    {
+        db.Database.ExecuteSqlRaw("""
+            ALTER TABLE "AspNetUsers"
+            ADD COLUMN "IsAdmin" INTEGER NOT NULL DEFAULT 0;
             """);
     }
 }
